@@ -1,11 +1,18 @@
 import { Hono } from 'hono';
+import { getConnInfo } from '@hono/node-server/conninfo';
 import { findMatch } from '../services/fingerprint.js';
 
 const app = new Hono();
 
 // Called by the app on first launch (iOS only)
 app.post('/api/match', async (c) => {
-  const fingerprint = await c.req.json();
+  let fingerprint;
+
+  try {
+    fingerprint = await c.req.json();
+  } catch (error) {
+    return c.json({ error: 'Invalid JSON body' }, 400);
+  }
 
   // Validate required fields
   if (!fingerprint.platform || !fingerprint.ip_address) {
@@ -19,9 +26,19 @@ app.post('/api/match', async (c) => {
 // Called by the device to retrieve its own info from request headers
 app.get('/api/device-info', async (c) => {
   const userAgent = c.req.header('user-agent') || '';
-  const ip = c.req.header('x-forwarded-for')?.split(',')[0] ||
-             c.req.header('x-real-ip') ||
-             'unknown';
+
+  // Get IP from proxy headers (production) or connection info (development)
+  let ip = c.req.header('x-forwarded-for')?.split(',')[0] ||
+           c.req.header('x-real-ip');
+
+  if (!ip) {
+    try {
+      const connInfo = getConnInfo(c);
+      ip = connInfo.remote.address || 'unknown';
+    } catch (e) {
+      ip = 'unknown';
+    }
+  }
 
   // Return the device info extracted from request
   return c.json({
