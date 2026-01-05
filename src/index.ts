@@ -36,4 +36,3 @@ serve({
 console.log(`\n🚀 Server running at http://localhost:${port}`);
 console.log(`📊 Health check: http://localhost:${port}/health\n`);
 
-export default app;
