@@ -16,4 +16,20 @@ app.post('/api/match', async (c) => {
   return c.json(result);
 });
 
+// Called by the device to retrieve its own info from request headers
+app.get('/api/device-info', async (c) => {
+  const userAgent = c.req.header('user-agent') || '';
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0] ||
+             c.req.header('x-real-ip') ||
+             'unknown';
+
+  // Return the device info extracted from request
+  return c.json({
+    device_info: {
+      ip_address: ip,
+      user_agent: userAgent,
+    }
+  });
+});
+
 export default app;

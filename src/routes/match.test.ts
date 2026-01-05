@@ -128,6 +128,21 @@ describe('Match Routes', () => {
       expect(response.status).toBe(400);
     });
 
+    it('should handle invalid JSON', async () => {
+      const response = await app.request('/api/match', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+        },
+        body: 'invalid json',
+      });
+
+      expect(response.status).toBe(400);
+
+      const data: any = await response.json();
+      expect(data.error).toBe('Invalid JSON body');
+    });
+
     it('should work with complete fingerprint data', async () => {
       vi.mocked(findMatch).mockResolvedValue({
         matched: true,
@@ -176,6 +191,65 @@ describe('Match Routes', () => {
       });
 
       expect(response.status).toBe(200);
+    });
+  });
+
+  describe('GET /api/device-info', () => {
+    it('should return device info from request headers', async () => {
+      const response = await app.request('/api/device-info', {
+        method: 'GET',
+        headers: {
+          'user-agent': 'Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)',
+          'x-forwarded-for': '192.168.1.1',
+        },
+      });
+
+      expect(response.status).toBe(200);
+
+      const data: any = await response.json();
+      expect(data.device_info).toBeDefined();
+      expect(data.device_info.ip_address).toBe('192.168.1.1');
+      expect(data.device_info.user_agent).toBe('Mozilla/5.0 (iPhone; CPU iPhone OS 15_0 like Mac OS X)');
+    });
+
+    it('should handle x-real-ip header', async () => {
+      const response = await app.request('/api/device-info', {
+        method: 'GET',
+        headers: {
+          'user-agent': 'Mozilla/5.0 (Linux; Android 11)',
+          'x-real-ip': '10.0.0.1',
+        },
+      });
+
+      expect(response.status).toBe(200);
+
+      const data: any = await response.json();
+      expect(data.device_info.ip_address).toBe('10.0.0.1');
+    });
+
+    it('should return unknown for missing IP', async () => {
+      const response = await app.request('/api/device-info', {
+        method: 'GET',
+        headers: {
+          'user-agent': 'Mozilla/5.0',
+        },
+      });
+
+      expect(response.status).toBe(200);
+
+      const data: any = await response.json();
+      expect(data.device_info.ip_address).toBe('unknown');
+    });
+
+    it('should return empty string for missing user-agent', async () => {
+      const response = await app.request('/api/device-info', {
+        method: 'GET',
+      });
+
+      expect(response.status).toBe(200);
+
+      const data: any = await response.json();
+      expect(data.device_info.user_agent).toBe('');
     });
   });
 });

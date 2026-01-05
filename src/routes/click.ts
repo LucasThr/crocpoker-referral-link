@@ -43,7 +43,7 @@ app.get('/r/:code', (c) => {
     <body>
       <div class="container">
         <div class="spinner"></div>
-        <p>Taking you to the app...</p>
+        <p>Redirection en cours...</p>
       </div>
       <script>
         (async function() {
