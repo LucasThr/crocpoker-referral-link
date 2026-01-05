@@ -1,14 +1,14 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import matchRoutes from './match';
-import { mockFingerprint } from '../__tests__/fixtures/clicks';
+import matchRoutes from './match.js';
+import { mockFingerprint } from '../__tests__/fixtures/clicks.js';
 
 // Mock the fingerprint service
-vi.mock('../services/fingerprint', () => ({
+vi.mock('../services/fingerprint.js', () => ({
   findMatch: vi.fn(),
 }));
 
-import { findMatch } from '../services/fingerprint';
+import { findMatch } from '../services/fingerprint.js';
 
 describe('Match Routes', () => {
   let app: Hono;

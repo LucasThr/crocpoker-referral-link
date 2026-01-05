@@ -1,5 +1,5 @@
-import { db } from '../db';
-import { clickRecords } from '../db/schema';
+import { db } from '../db/index.js';
+import { clickRecords } from '../db/schema.js';
 import { eq, and, gt, desc } from 'drizzle-orm';
 
 interface AppFingerprint {

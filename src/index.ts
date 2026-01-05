@@ -4,9 +4,9 @@ import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
 import 'dotenv/config';
 
-import clickRoutes from './routes/click';
-import matchRoutes from './routes/match';
-import referralRoutes from './routes/referral';
+import clickRoutes from './routes/click.js';
+import matchRoutes from './routes/match.js';
+import referralRoutes from './routes/referral.js';
 
 const app = new Hono();
 

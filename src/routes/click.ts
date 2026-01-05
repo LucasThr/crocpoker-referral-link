@@ -1,7 +1,7 @@
 import { Hono } from 'hono';
-import { db } from '../db';
-import { clickRecords } from '../db/schema';
-import { getRedirectInfo } from '../services/redirect';
+import { db } from '../db/index.js';
+import { clickRecords } from '../db/schema.js';
+import { getRedirectInfo } from '../services/redirect.js';
 
 const app = new Hono();
 

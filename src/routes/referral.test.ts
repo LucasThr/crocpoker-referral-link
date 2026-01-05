@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import referralRoutes from './referral';
+import referralRoutes from './referral.js';
 
 // Mock the database with proper query builder chain
 const mockQueryBuilder = {
@@ -13,14 +13,14 @@ const mockInsertBuilder = {
   values: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../db', () => ({
+vi.mock('../db/index.js', () => ({
   db: {
     select: vi.fn(() => mockQueryBuilder),
     insert: vi.fn(() => mockInsertBuilder),
   },
 }));
 
-import { db } from '../db';
+import { db } from '../db/index.js';
 
 describe('Referral Routes', () => {
   let app: Hono;

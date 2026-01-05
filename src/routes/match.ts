@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { findMatch } from '../services/fingerprint';
+import { findMatch } from '../services/fingerprint.js';
 
 const app = new Hono();
 

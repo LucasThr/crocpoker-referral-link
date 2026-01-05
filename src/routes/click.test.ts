@@ -1,24 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import clickRoutes from './click';
+import clickRoutes from './click.js';
 
 // Mock the database and services
 const mockInsertBuilder = {
   values: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../db', () => ({
+vi.mock('../db/index.js', () => ({
   db: {
     insert: vi.fn(() => mockInsertBuilder),
   },
 }));
 
-vi.mock('../services/redirect', () => ({
+vi.mock('../services/redirect.js', () => ({
   getRedirectInfo: vi.fn(),
 }));
 
-import { db } from '../db';
-import { getRedirectInfo } from '../services/redirect';
+import { db } from '../db/index.js';
+import { getRedirectInfo } from '../services/redirect.js';
 
 describe('Click Routes', () => {
   let app: Hono;

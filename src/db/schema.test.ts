@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clickRecords, referrals } from './schema';
+import { clickRecords, referrals } from './schema.js';
 
 describe('Database Schema', () => {
   describe('clickRecords table', () => {

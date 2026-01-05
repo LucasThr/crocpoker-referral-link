@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { findMatch } from './fingerprint';
-import { mockClickRecord, mockFingerprint, mockFingerprintPartialMatch, mockFingerprintNoMatch } from '../__tests__/fixtures/clicks';
+import { findMatch } from './fingerprint.js';
+import { mockClickRecord, mockFingerprint, mockFingerprintPartialMatch, mockFingerprintNoMatch } from '../__tests__/fixtures/clicks.js';
 
 // Mock the database with proper query builder chain
 const mockSelectBuilder = {
@@ -15,14 +15,14 @@ const mockUpdateBuilder = {
   where: vi.fn().mockResolvedValue(undefined),
 };
 
-vi.mock('../db', () => ({
+vi.mock('../db/index.js', () => ({
   db: {
     select: vi.fn(() => mockSelectBuilder),
     update: vi.fn(() => mockUpdateBuilder),
   },
 }));
 
-import { db } from '../db';
+import { db } from '../db/index.js';
 
 describe('Fingerprint Service', () => {
   beforeEach(() => {

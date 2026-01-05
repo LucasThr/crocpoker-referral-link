@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
-import { db } from '../db';
-import { referrals } from '../db/schema';
+import { db } from '../db/index.js';
+import { referrals } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 const app = new Hono();

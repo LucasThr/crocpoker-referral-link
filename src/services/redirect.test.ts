@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getRedirectInfo } from './redirect';
+import { getRedirectInfo } from './redirect.js';
 
 describe('Redirect Service', () => {
   const referralCode = 'TESTCODE123';
