@@ -5,7 +5,8 @@ FROM base AS builder
 RUN apk add --no-cache gcompat
 WORKDIR /app
 
-COPY package*json tsconfig.json src/ ./src/
+COPY package.json package-lock.json tsconfig.json ./
+COPY src ./src
 
 RUN npm ci && \
     npm run build && \
