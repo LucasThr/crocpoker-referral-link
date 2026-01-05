@@ -38,7 +38,7 @@ describe('Match Routes', () => {
 
       expect(response.status).toBe(200);
 
-      const data = await response.json();
+      const data: any = await response.json();
       expect(data.matched).toBe(true);
       expect(data.referral_code).toBe('TESTCODE123');
       expect(data.confidence).toBe(0.95);
@@ -60,7 +60,7 @@ describe('Match Routes', () => {
 
       expect(response.status).toBe(200);
 
-      const data = await response.json();
+      const data: any = await response.json();
       expect(data.matched).toBe(false);
       expect(data.referral_code).toBeUndefined();
     });
@@ -79,7 +79,7 @@ describe('Match Routes', () => {
 
       expect(response.status).toBe(400);
 
-      const data = await response.json();
+      const data: any = await response.json();
       expect(data.error).toBe('Missing required fields');
     });
 
@@ -97,7 +97,7 @@ describe('Match Routes', () => {
 
       expect(response.status).toBe(400);
 
-      const data = await response.json();
+      const data: any = await response.json();
       expect(data.error).toBe('Missing required fields');
     });
 

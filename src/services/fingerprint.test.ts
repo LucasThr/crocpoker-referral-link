@@ -2,16 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { findMatch } from './fingerprint';
 import { mockClickRecord, mockFingerprint, mockFingerprintPartialMatch, mockFingerprintNoMatch } from '../__tests__/fixtures/clicks';
 
-// Mock the database
+// Mock the database with proper query builder chain
+const mockSelectBuilder = {
+  from: vi.fn().mockReturnThis(),
+  where: vi.fn().mockReturnThis(),
+  orderBy: vi.fn().mockReturnThis(),
+  limit: vi.fn(),
+};
+
+const mockUpdateBuilder = {
+  set: vi.fn().mockReturnThis(),
+  where: vi.fn().mockResolvedValue(undefined),
+};
+
 vi.mock('../db', () => ({
   db: {
-    select: vi.fn().mockReturnThis(),
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnThis(),
-    orderBy: vi.fn().mockReturnThis(),
-    limit: vi.fn(),
-    update: vi.fn().mockReturnThis(),
-    set: vi.fn().mockReturnThis(),
+    select: vi.fn(() => mockSelectBuilder),
+    update: vi.fn(() => mockUpdateBuilder),
   },
 }));
 
@@ -21,15 +28,16 @@ describe('Fingerprint Service', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     // Reset mocks to return this for chaining
-    vi.mocked(db.where).mockReturnThis();
-    vi.mocked(db.orderBy).mockReturnThis();
+    mockSelectBuilder.where.mockReturnThis();
+    mockSelectBuilder.orderBy.mockReturnThis();
+    mockSelectBuilder.from.mockReturnThis();
+    mockUpdateBuilder.set.mockReturnThis();
   });
 
   describe('findMatch', () => {
     it('should find exact match with high confidence', async () => {
       // Mock database to return matching click
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
-      vi.mocked(db.where).mockResolvedValueOnce(undefined);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
 
       const result = await findMatch(mockFingerprint);
 
@@ -41,8 +49,7 @@ describe('Fingerprint Service', () => {
 
     it('should find partial match with moderate confidence', async () => {
       // Mock database to return click with slightly different fingerprint
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
-      vi.mocked(db.where).mockResolvedValueOnce(undefined);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
 
       const result = await findMatch(mockFingerprintPartialMatch);
 
@@ -54,7 +61,7 @@ describe('Fingerprint Service', () => {
 
     it('should not match when no clicks exist', async () => {
       // Mock database to return empty array
-      vi.mocked(db.limit).mockResolvedValueOnce([]);
+      mockSelectBuilder.limit.mockResolvedValueOnce([]);
 
       const result = await findMatch(mockFingerprint);
 
@@ -65,7 +72,7 @@ describe('Fingerprint Service', () => {
 
     it('should not match when confidence is below threshold', async () => {
       // Mock database to return click with very different fingerprint
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
 
       const result = await findMatch(mockFingerprintNoMatch);
 
@@ -74,48 +81,46 @@ describe('Fingerprint Service', () => {
     });
 
     it('should update click record when match is found', async () => {
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
-      vi.mocked(db.where).mockResolvedValueOnce(undefined);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
 
       await findMatch(mockFingerprint);
 
       // Verify update was called
       expect(db.update).toHaveBeenCalled();
-      expect(db.set).toHaveBeenCalledWith(
+      expect(mockUpdateBuilder.set).toHaveBeenCalledWith(
         expect.objectContaining({
           matched: true,
           matchedAt: expect.any(Date),
         })
       );
-      expect(db.where).toHaveBeenCalled();
+      expect(mockUpdateBuilder.where).toHaveBeenCalled();
     });
 
     it('should filter by platform', async () => {
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
-      vi.mocked(db.where).mockResolvedValueOnce(undefined);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
 
       await findMatch(mockFingerprint);
 
       // Verify where clause includes platform check
-      expect(db.where).toHaveBeenCalled();
+      expect(mockSelectBuilder.where).toHaveBeenCalled();
     });
 
     it('should only check unmatched clicks', async () => {
-      vi.mocked(db.limit).mockResolvedValueOnce([]);
+      mockSelectBuilder.limit.mockResolvedValueOnce([]);
 
       await findMatch(mockFingerprint);
 
       // Verify where clause includes matched=false check
-      expect(db.where).toHaveBeenCalled();
+      expect(mockSelectBuilder.where).toHaveBeenCalled();
     });
 
     it('should only check non-expired clicks', async () => {
-      vi.mocked(db.limit).mockResolvedValueOnce([]);
+      mockSelectBuilder.limit.mockResolvedValueOnce([]);
 
       await findMatch(mockFingerprint);
 
       // Verify where clause includes expiry check
-      expect(db.where).toHaveBeenCalled();
+      expect(mockSelectBuilder.where).toHaveBeenCalled();
     });
   });
 
@@ -124,11 +129,10 @@ describe('Fingerprint Service', () => {
       const fingerprintSameIP = { ...mockFingerprint, device_model: 'Different Device' };
       const fingerprintDifferentIP = { ...mockFingerprint, ip_address: '10.0.0.1' };
 
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
-      vi.mocked(db.where).mockResolvedValueOnce(undefined);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
       const resultSameIP = await findMatch(fingerprintSameIP);
 
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
       const resultDifferentIP = await findMatch(fingerprintDifferentIP);
 
       // Same IP should have higher confidence even with different device
@@ -144,8 +148,7 @@ describe('Fingerprint Service', () => {
         screen_height: 846, // +2 pixels
       };
 
-      vi.mocked(db.limit).mockResolvedValueOnce([mockClickRecord]);
-      vi.mocked(db.where).mockResolvedValueOnce(undefined);
+      mockSelectBuilder.limit.mockResolvedValueOnce([mockClickRecord]);
 
       const result = await findMatch(fingerprintSlightlyDifferentScreen);
 

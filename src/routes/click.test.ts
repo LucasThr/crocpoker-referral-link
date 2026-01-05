@@ -3,10 +3,13 @@ import { Hono } from 'hono';
 import clickRoutes from './click';
 
 // Mock the database and services
+const mockInsertBuilder = {
+  values: vi.fn().mockResolvedValue(undefined),
+};
+
 vi.mock('../db', () => ({
   db: {
-    insert: vi.fn().mockReturnThis(),
-    values: vi.fn().mockResolvedValue(undefined),
+    insert: vi.fn(() => mockInsertBuilder),
   },
 }));
 
@@ -121,7 +124,7 @@ describe('Click Routes', () => {
       );
 
       expect(db.insert).toHaveBeenCalled();
-      expect(db.values).toHaveBeenCalledWith(
+      expect(mockInsertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
           referralCode: 'TESTCODE123',
           platform: 'ios',
@@ -162,7 +165,7 @@ describe('Click Routes', () => {
         },
       });
 
-      expect(db.values).toHaveBeenCalledWith(
+      expect(mockInsertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
           ipAddress: '192.168.1.1',
         })
@@ -182,7 +185,7 @@ describe('Click Routes', () => {
       });
 
       expect(response.status).toBe(302);
-      expect(db.values).toHaveBeenCalledWith(
+      expect(mockInsertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
           screenWidth: 0,
           screenHeight: 0,
@@ -206,13 +209,13 @@ describe('Click Routes', () => {
         },
       });
 
-      expect(db.values).toHaveBeenCalledWith(
+      expect(mockInsertBuilder.values).toHaveBeenCalledWith(
         expect.objectContaining({
           expiresAt: expect.any(Date),
         })
       );
 
-      const callArgs = vi.mocked(db.values).mock.calls[0][0];
+      const callArgs = vi.mocked(mockInsertBuilder.values).mock.calls[0][0];
       const expiresAt = callArgs.expiresAt.getTime();
       const expectedExpiry = now + 48 * 60 * 60 * 1000;
 
