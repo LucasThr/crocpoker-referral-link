@@ -357,10 +357,10 @@ app.get('/', (c) => {
             Téléchargez notre application et profitez d'une expérience de poker exceptionnelle sur iOS et Android. Jouez où vous voulez, quand vous voulez.
           </p>
           <div class="download-buttons">
-            <a href="https://apps.apple.com/app/your-app" class="store-badge">
+            <a href="https://apps.apple.com/fr/app/crocpoker/id6741067848" class="store-badge">
               <img src="https://images.crpkr.com/documents/Download_on_the_App_Store_Badge_FR_RGB_blk_100517.svg" alt="Download on the App Store" />
             </a>
-            <a href="https://play.google.com/store/apps/details?id=your.app" class="store-badge">
+            <a href="https://play.google.com/store/apps/details?id=com.crocpoker" class="store-badge">
               <img src="https://images.crpkr.com/documents/GetItOnGooglePlay_Badge_Web_color_French.webp" alt="Get it on Google Play" />
             </a>
           </div>
