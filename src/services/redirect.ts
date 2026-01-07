@@ -10,7 +10,7 @@ interface RedirectInfo {
 const APP_CONFIG = {
   iosAppStoreUrl: 'https://apps.apple.com/fr/app/crocpoker-poker-gratuit/id6741067848',
   androidPackage: 'com.crocpoker',
-  webFallbackUrl: 'https://croc.poker',
+  webFallbackUrl: 'https://croc.poker/application-poker',
 };
 
 export function getRedirectInfo(userAgent: string, referralCode: string): RedirectInfo {
