@@ -6,18 +6,31 @@ const app = new Hono();
 
 // Called by the app on first launch (iOS only)
 app.post('/api/match', async (c) => {
-  let fingerprint;
+  let fingerprintData;
 
   try {
-    fingerprint = await c.req.json();
+    fingerprintData = await c.req.json();
   } catch (error) {
     return c.json({ error: 'Invalid JSON body' }, 400);
   }
 
+  // Extract IP and User Agent from headers (server-side for security)
+  const ip = c.req.header('x-forwarded-for')?.split(',')[0] ||
+             c.req.header('x-real-ip') ||
+             'unknown';
+  const userAgent = c.req.header('user-agent') || '';
+
   // Validate required fields
-  if (!fingerprint.platform || !fingerprint.ip_address) {
+  if (!fingerprintData.platform) {
     return c.json({ error: 'Missing required fields' }, 400);
   }
+
+  // Combine client data with server-extracted data
+  const fingerprint = {
+    ...fingerprintData,
+    ip_address: ip,
+    user_agent: userAgent,
+  };
 
   const result = await findMatch(fingerprint);
   return c.json(result);

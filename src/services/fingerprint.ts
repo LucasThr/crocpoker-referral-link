@@ -3,7 +3,6 @@ import { clickRecords } from '../db/schema.js';
 import { eq, and, gt, desc } from 'drizzle-orm';
 
 interface AppFingerprint {
-  ip_address: string;
   platform: string;
   os_version: string;
   device_model: string;
@@ -11,6 +10,9 @@ interface AppFingerprint {
   screen_height: number;
   language: string;
   timezone: string;
+  // Server-side fields (added from headers)
+  ip_address: string;
+  user_agent?: string;
 }
 
 interface MatchResult {
