@@ -219,14 +219,6 @@ app.get('/r/:code', (c) => {
             lang: navigator.language,
           };
 
-          // Try to copy to clipboard for iOS
-          try {
-            await navigator.clipboard.writeText(JSON.stringify({
-              ref: '${code}',
-              ts: Date.now()
-            }));
-          } catch(e) {}
-
           // Redirect to processing endpoint
           const params = new URLSearchParams(data);
           window.location.href = '/api/process-click?' + params.toString();
