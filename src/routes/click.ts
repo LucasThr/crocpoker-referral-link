@@ -18,6 +18,35 @@ app.get('/r/:code', (c) => {
       <title>Ouverture de Croc'Poker...</title>
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <meta name="theme-color" content="#0e172e">
+
+      <!-- Open Graph / Facebook / LinkedIn -->
+      <meta property="og:type" content="website">
+      <meta property="og:url" content="https://croc.poker/r/${code}">
+      <meta property="og:title" content="Croc'Poker - Poker Gratuit avec vos amis">
+      <meta property="og:description" content="Téléchargez l'application Croc'Poker gratuite et profitez du poker sur mobile. Disponible sur iOS et Android.">
+      <meta property="og:image" content="https://images.crpkr.com/images/crocpoker-social-preview.png">
+      <meta property="og:image:width" content="1200">
+      <meta property="og:image:height" content="630">
+      <meta property="og:locale" content="fr_FR">
+      <meta property="og:site_name" content="Croc'Poker">
+
+      <!-- Twitter Card -->
+      <meta name="twitter:card" content="summary_large_image">
+      <meta name="twitter:url" content="https://croc.poker/r/${code}">
+      <meta name="twitter:title" content="Croc'Poker - Poker Gratuit avec vos amis">
+      <meta name="twitter:description" content="Téléchargez l'application Croc'Poker gratuite et profitez du poker sur mobile. Disponible sur iOS et Android.">
+      <meta name="twitter:image" content="https://images.crpkr.com/images/crocpoker-social-preview.png">
+
+      <!-- iOS App Links -->
+      <meta property="al:ios:url" content="crocpoker://referral/${code}">
+      <meta property="al:ios:app_store_id" content="6741067848">
+      <meta property="al:ios:app_name" content="Croc'Poker">
+
+      <!-- Android App Links -->
+      <meta property="al:android:url" content="crocpoker://referral/${code}">
+      <meta property="al:android:package" content="com.crocpoker">
+      <meta property="al:android:app_name" content="Croc'Poker">
+
       <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
       <style>
         * {
