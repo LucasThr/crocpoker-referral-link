@@ -229,7 +229,7 @@ app.get('/r/:code', (c) => {
     </head>
     <body>
       <div class="container">
-        <img src="https://images.crpkr.com/images/crocpoker_full_logo.png" alt="Croc'Poker" class="logo" />
+        <img src="/crocpoker_full_logo.png" alt="Croc'Poker" class="logo" />
         <div class="spinner-container">
           <div class="spinner"></div>
           <div class="spinner-inner"></div>

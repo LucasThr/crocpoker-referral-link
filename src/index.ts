@@ -21,6 +21,9 @@ app.use('*', cors({
 // Favicon
 app.get('/favicon.ico', serveStatic({ path: './favicon.ico' }));
 
+// Logo
+app.get('/crocpoker_full_logo.png', serveStatic({ path: './crocpoker_full_logo.png' }));
+
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
