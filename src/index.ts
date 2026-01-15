@@ -18,11 +18,9 @@ app.use('*', cors({
   origin: '*', // Adjust for production
 }));
 
-// Favicon
-app.get('/favicon.ico', serveStatic({ path: './favicon.ico' }));
-
-// Logo
-app.get('/crocpoker_full_logo.png', serveStatic({ path: './crocpoker_full_logo.png' }));
+// Static files
+app.get('/favicon.ico', serveStatic({ path: './public/favicon.ico' }));
+app.get('/crocpoker_full_logo.png', serveStatic({ path: './public/crocpoker_full_logo.png' }));
 
 // Health check
 app.get('/health', (c) => c.json({ status: 'ok' }));
