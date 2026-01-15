@@ -23,7 +23,7 @@ app.get('/r/:code', (c) => {
       <meta property="og:type" content="website">
       <meta property="og:url" content="https://croc.poker/r/${code}">
       <meta property="og:title" content="Croc'Poker - Poker Gratuit avec vos amis">
-      <meta property="og:description" content="Téléchargez l'application Croc'Poker gratuite et profitez du poker sur mobile. Disponible sur iOS et Android.">
+      <meta property="og:description" content="Téléchargez l'application Croc'Poker gratuite et jouez au poker dans les bars près de chez vous. Disponible sur iOS et Android.">
       <meta property="og:image" content="https://images.crpkr.com/images/crocpoker-social-preview.png">
       <meta property="og:image:width" content="1200">
       <meta property="og:image:height" content="630">
@@ -34,7 +34,7 @@ app.get('/r/:code', (c) => {
       <meta name="twitter:card" content="summary_large_image">
       <meta name="twitter:url" content="https://croc.poker/r/${code}">
       <meta name="twitter:title" content="Croc'Poker - Poker Gratuit avec vos amis">
-      <meta name="twitter:description" content="Téléchargez l'application Croc'Poker gratuite et profitez du poker sur mobile. Disponible sur iOS et Android.">
+      <meta name="twitter:description" content="Téléchargez l'application Croc'Poker gratuite et jouez au poker dans les bars près de chez vous. Disponible sur iOS et Android.">
       <meta name="twitter:image" content="https://images.crpkr.com/images/crocpoker-social-preview.png">
 
       <!-- iOS App Links -->
