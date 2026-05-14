@@ -277,21 +277,26 @@ app.get('/api/process-click', async (c) => {
   // Get platform-specific redirect info
   const redirectInfo = getRedirectInfo(userAgent, code);
 
-  // Only store fingerprint for iOS (Android uses Install Referrer)
+  // Only store fingerprint for iOS (Android uses Install Referrer).
+  // Best-effort: a DB failure must not block the redirect to the store/app.
   if (redirectInfo.platform === 'ios') {
-    await db.insert(clickRecords).values({
-      referralCode: code,
-      ipAddress: ip,
-      userAgent,
-      platform: 'ios',
-      osVersion: redirectInfo.osVersion,
-      deviceModel: redirectInfo.deviceModel,
-      screenWidth,
-      screenHeight,
-      language,
-      timezone,
-      expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
-    });
+    try {
+      await db.insert(clickRecords).values({
+        referralCode: code,
+        ipAddress: ip,
+        userAgent,
+        platform: 'ios',
+        osVersion: redirectInfo.osVersion,
+        deviceModel: redirectInfo.deviceModel,
+        screenWidth,
+        screenHeight,
+        language,
+        timezone,
+        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
+      });
+    } catch (error) {
+      console.error('[process-click] Failed to store click record:', error);
+    }
   }
 
   return c.redirect(redirectInfo.redirectUrl);
