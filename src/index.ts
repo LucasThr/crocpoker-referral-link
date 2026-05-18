@@ -3,8 +3,10 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
+import { sql } from 'drizzle-orm';
 import 'dotenv/config';
 
+import { db } from './db/index.js';
 import clickRoutes from './routes/click.js';
 import matchRoutes from './routes/match.js';
 import referralRoutes from './routes/referral.js';
@@ -23,7 +25,18 @@ app.get('/favicon.ico', serveStatic({ path: './public/favicon.ico' }));
 app.get('/crocpoker_full_logo.png', serveStatic({ path: './public/crocpoker_full_logo.png' }));
 
 // Health check
-app.get('/health', (c) => c.json({ status: 'ok' }));
+app.get('/health', async (c) => {
+  let database: 'ok' | 'error' = 'ok';
+  try {
+    await db.execute(sql`SELECT 1`);
+  } catch (err) {
+    console.error('[health] database check failed', err);
+    database = 'error';
+  }
+
+  const status = database === 'ok' ? 'ok' : 'error';
+  return c.json({ status, database }, status === 'ok' ? 200 : 503);
+});
 
 // Routes
 app.route('/', clickRoutes);
