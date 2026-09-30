@@ -78,7 +78,7 @@ describe('Redirect Service', () => {
       const result = getRedirectInfo(userAgent, referralCode);
 
       expect(result.platform).toBe('desktop');
-      expect(result.redirectUrl).toContain('yourapp.com');
+      expect(result.redirectUrl).toContain('croc.poker');
     });
 
     it('should redirect Linux to web fallback', () => {
@@ -86,7 +86,7 @@ describe('Redirect Service', () => {
       const result = getRedirectInfo(userAgent, referralCode);
 
       expect(result.platform).toBe('desktop');
-      expect(result.redirectUrl).toContain('yourapp.com');
+      expect(result.redirectUrl).toContain('croc.poker');
     });
 
     it('should redirect macOS desktop to web fallback', () => {
@@ -94,7 +94,7 @@ describe('Redirect Service', () => {
       const result = getRedirectInfo(userAgent, referralCode);
 
       expect(result.platform).toBe('desktop');
-      expect(result.redirectUrl).toContain('yourapp.com');
+      expect(result.redirectUrl).toContain('croc.poker');
     });
 
     it('should handle unknown user agents', () => {
@@ -102,7 +102,7 @@ describe('Redirect Service', () => {
       const result = getRedirectInfo(userAgent, referralCode);
 
       expect(result.platform).toBe('desktop');
-      expect(result.redirectUrl).toContain('yourapp.com');
+      expect(result.redirectUrl).toContain('croc.poker');
     });
 
     it('should handle empty user agent', () => {
@@ -111,6 +111,27 @@ describe('Redirect Service', () => {
 
       expect(result.platform).toBe('desktop');
       expect(result.redirectUrl).toBeTruthy();
+    });
+  });
+
+  describe('Touch hint (iPad / "Request Desktop Website")', () => {
+    const macUA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15';
+
+    it('should treat a Mac user agent with a touch screen as iOS', () => {
+      const result = getRedirectInfo(macUA, referralCode, { touch: true });
+
+      expect(result.platform).toBe('ios');
+      expect(result.redirectUrl).toContain('apps.apple.com');
+    });
+
+    it('should keep a Mac user agent without touch as desktop', () => {
+      expect(getRedirectInfo(macUA, referralCode, { touch: false }).platform).toBe('desktop');
+      expect(getRedirectInfo(macUA, referralCode).platform).toBe('desktop');
+    });
+
+    it('should not turn a Windows touch laptop into iOS', () => {
+      const windowsUA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36';
+      expect(getRedirectInfo(windowsUA, referralCode, { touch: true }).platform).toBe('desktop');
     });
   });
 

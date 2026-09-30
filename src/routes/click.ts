@@ -2,12 +2,35 @@ import { Hono } from 'hono';
 import { db } from '../db/index.js';
 import { clickRecords } from '../db/schema.js';
 import { getRedirectInfo } from '../services/redirect.js';
+import { isValidReferralCode, recoverReferralCode } from '../services/referral-code.js';
+import { messagePage } from '../views/message-page.js';
 
 const app = new Hono();
 
+// How long the redirect may wait for the click record to be stored.
+// Past this, the redirect goes out and the insert finishes in the background.
+export const STORE_CLICK_TIMEOUT_MS = 1500;
+
 // Landing page that collects fingerprint via JS
 app.get('/r/:code', (c) => {
-  const code = c.req.param('code');
+  const rawCode = c.req.param('code');
+
+  // The code is inlined in HTML and JS below: only accept a safe charset.
+  if (!isValidReferralCode(rawCode)) {
+    const recovered = recoverReferralCode(rawCode);
+    if (recovered) {
+      return c.redirect(`/r/${recovered}`);
+    }
+    return c.html(
+      messagePage({
+        title: 'Lien invalide',
+        heading: 'Ce lien ne semble pas valide',
+        message: "Vérifiez le lien de parrainage qui vous a été envoyé, ou téléchargez l'application depuis notre site.",
+      }),
+      404,
+    );
+  }
+  const code = rawCode;
 
   // Return HTML page that collects more fingerprint data
   return c.html(`
@@ -47,7 +70,8 @@ app.get('/r/:code', (c) => {
       <meta property="al:android:package" content="com.crocpoker">
       <meta property="al:android:app_name" content="Croc'Poker">
 
-      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+      <!-- Loaded without blocking rendering or the redirect script below -->
+      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
       <style>
         * {
           margin: 0;
@@ -198,6 +222,24 @@ app.get('/r/:code', (c) => {
           66%, 100% { content: '...'; }
         }
 
+        .fallback {
+          display: none;
+          margin-top: 28px;
+          font-size: 15px;
+          color: rgba(255, 255, 255, 0.7);
+        }
+
+        .fallback a {
+          color: #f5b73d;
+          font-weight: 500;
+          text-decoration: underline;
+        }
+
+        body.show-fallback .fallback,
+        noscript .fallback {
+          display: block;
+        }
+
         @media (max-width: 480px) {
           .logo {
             width: 140px;
@@ -237,25 +279,48 @@ app.get('/r/:code', (c) => {
         </div>
         <p class="message">Ouverture en cours<span class="dots"></span></p>
         <p class="submessage">Vous allez être redirigé vers l'application</p>
+        <p class="fallback">
+          Rien ne se passe ?
+          <a id="manual-link" href="/api/process-click?code=${code}">Ouvrir manuellement</a>
+        </p>
+        <noscript>
+          <meta http-equiv="refresh" content="0;url=/api/process-click?code=${code}">
+          <p class="fallback">
+            <a href="/api/process-click?code=${code}">Ouvrir l'application</a>
+          </p>
+        </noscript>
       </div>
       <script>
-        (async function() {
-          const data = {
-            code: '${code}',
-            sw: screen.width,
-            sh: screen.height,
-            tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
-            lang: navigator.language,
-          };
+        (function () {
+          var code = '${code}';
+          var target = '/api/process-click?code=' + encodeURIComponent(code);
 
-          // Redirect to processing endpoint
-          const params = new URLSearchParams(data);
-          window.location.href = '/api/process-click?' + params.toString();
+          // Fingerprint collection is best-effort: any failure still redirects.
+          try {
+            var tz = '';
+            try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) {}
+            var params = new URLSearchParams();
+            params.set('code', code);
+            params.set('sw', String(screen.width || 0));
+            params.set('sh', String(screen.height || 0));
+            params.set('tz', tz);
+            params.set('lang', navigator.language || '');
+            params.set('touch', navigator.maxTouchPoints > 1 ? '1' : '0');
+            target = '/api/process-click?' + params.toString();
+          } catch (e) {}
+
+          var link = document.getElementById('manual-link');
+          if (link) link.href = target;
+
+          // If the navigation is blocked or slow, give the user a manual way out.
+          setTimeout(function () {
+            document.body.className += ' show-fallback';
+          }, 3000);
+
+          // replace(): the back button should not land on this spinner page.
+          window.location.replace(target);
         })();
       </script>
-      <noscript>
-        <meta http-equiv="refresh" content="0;url=/api/process-click?code=${code}">
-      </noscript>
     </body>
     </html>
   `);
@@ -263,11 +328,13 @@ app.get('/r/:code', (c) => {
 
 // Process the click and redirect
 app.get('/api/process-click', async (c) => {
-  const code = c.req.query('code') || '';
-  const screenWidth = parseFloat(c.req.query('sw') || '0');
-  const screenHeight = parseFloat(c.req.query('sh') || '0');
+  // An invalid code still gets the user to the store, just without tracking.
+  const code = recoverReferralCode(c.req.query('code') || '') ?? '';
+  const screenWidth = parseFloat(c.req.query('sw') || '0') || 0;
+  const screenHeight = parseFloat(c.req.query('sh') || '0') || 0;
   const timezone = c.req.query('tz') || '';
   const language = c.req.query('lang') || '';
+  const touch = c.req.query('touch') === '1';
 
   const userAgent = c.req.header('user-agent') || '';
   const ip = c.req.header('x-forwarded-for')?.split(',')[0] ||
@@ -275,13 +342,13 @@ app.get('/api/process-click', async (c) => {
              'unknown';
 
   // Get platform-specific redirect info
-  const redirectInfo = getRedirectInfo(userAgent, code);
+  const redirectInfo = getRedirectInfo(userAgent, code, { touch });
 
   // Only store fingerprint for iOS (Android uses Install Referrer).
-  // Best-effort: a DB failure must not block the redirect to the store/app.
-  if (redirectInfo.platform === 'ios') {
-    try {
-      await db.insert(clickRecords).values({
+  // Best-effort: a DB failure or a slow DB must not block the redirect to the store.
+  if (redirectInfo.platform === 'ios' && code) {
+    const store = Promise.resolve(
+      db.insert(clickRecords).values({
         referralCode: code,
         ipAddress: ip,
         userAgent,
@@ -293,13 +360,32 @@ app.get('/api/process-click', async (c) => {
         language,
         timezone,
         expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000), // 48 hours
-      });
-    } catch (error) {
-      console.error('[process-click] Failed to store click record:', error);
+      }),
+    ).then(
+      () => true,
+      (error) => {
+        console.error('[process-click] Failed to store click record:', error);
+        return false;
+      },
+    );
+
+    const stored = await waitAtMost(store, STORE_CLICK_TIMEOUT_MS);
+    if (stored === undefined) {
+      console.warn(`[process-click] Click record not stored within ${STORE_CLICK_TIMEOUT_MS}ms, redirecting anyway`);
     }
   }
 
   return c.redirect(redirectInfo.redirectUrl);
 });
+
+// Resolves with the promise's value, or undefined once `ms` has elapsed.
+// The underlying promise keeps running in the background.
+function waitAtMost<T>(promise: Promise<T>, ms: number): Promise<T | undefined> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<undefined>((resolve) => {
+    timer = setTimeout(() => resolve(undefined), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
 
 export default app;
