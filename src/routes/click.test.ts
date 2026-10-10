@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Hono } from 'hono';
-import clickRoutes from './click.js';
+import clickRoutes, { STORE_CLICK_TIMEOUT_MS } from './click.js';
 
 // Mock the database and services
 const mockInsertBuilder = {
@@ -38,7 +38,7 @@ describe('Click Routes', () => {
 
       const html = await response.text();
       expect(html).toContain('TESTCODE123');
-      expect(html).toContain('Opening App');
+      expect(html).toContain('Ouverture');
       expect(html).toContain('/api/process-click');
     });
 
@@ -52,11 +52,39 @@ describe('Click Routes', () => {
       expect(html).toContain('Intl.DateTimeFormat');
     });
 
-    it('should include clipboard copy for iOS', async () => {
+    it('should reject an unsafe code instead of inlining it', async () => {
+      const response = await app.request("/r/x';alert(1);%2F%2F");
+
+      expect(response.status).toBe(404);
+      const html = await response.text();
+      expect(html).not.toContain('alert(1)');
+      expect(html).toContain('Ce lien ne semble pas valide');
+    });
+
+    it('should redirect a code with trailing punctuation to the clean code', async () => {
+      const response = await app.request('/r/TESTCODE123.');
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toBe('/r/TESTCODE123');
+    });
+
+    it('should expose a manual fallback link and a touch hint', async () => {
       const response = await app.request('/r/TESTCODE123');
       const html = await response.text();
 
-      expect(html).toContain('clipboard.writeText');
+      expect(html).toContain('id="manual-link"');
+      expect(html).toContain('/api/process-click?code=TESTCODE123');
+      expect(html).toContain('maxTouchPoints');
+      expect(html).toContain('location.replace');
+    });
+
+    it('should not block the redirect script on the web font', async () => {
+      const response = await app.request('/r/TESTCODE123');
+      const html = await response.text();
+
+      const fontLink = html.match(/<link[^>]*fonts\.googleapis\.com[^>]*>/)?.[0] ?? '';
+      expect(fontLink).toContain('media="print"');
+      expect(fontLink).toContain("onload=\"this.media='all'\"");
     });
 
     it('should have noscript fallback', async () => {
@@ -178,7 +206,7 @@ describe('Click Routes', () => {
         redirectUrl: 'https://apps.apple.com/app/id123456789',
       });
 
-      const response = await app.request('/api/process-click', {
+      const response = await app.request('/api/process-click?code=TESTCODE123', {
         headers: {
           'user-agent': 'Mozilla/5.0 (iPhone)',
         },
@@ -193,6 +221,78 @@ describe('Click Routes', () => {
           language: '',
         })
       );
+    });
+
+    it('should pass the touch hint to the redirect service', async () => {
+      vi.mocked(getRedirectInfo).mockReturnValue({
+        platform: 'desktop',
+        redirectUrl: 'https://croc.poker/application-poker',
+      });
+
+      await app.request('/api/process-click?code=TESTCODE123&touch=1', {
+        headers: { 'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)' },
+      });
+
+      expect(getRedirectInfo).toHaveBeenCalledWith(
+        expect.any(String),
+        'TESTCODE123',
+        { touch: true },
+      );
+    });
+
+    it('should redirect without storing when the code is invalid', async () => {
+      vi.mocked(getRedirectInfo).mockReturnValue({
+        platform: 'ios',
+        redirectUrl: 'https://apps.apple.com/app/id123456789',
+      });
+
+      const response = await app.request("/api/process-click?code=%3Cscript%3E", {
+        headers: { 'user-agent': 'Mozilla/5.0 (iPhone)' },
+      });
+
+      expect(response.status).toBe(302);
+      expect(getRedirectInfo).toHaveBeenCalledWith(expect.any(String), '', expect.anything());
+      expect(mockInsertBuilder.values).not.toHaveBeenCalled();
+    });
+
+    it('should still redirect when storing the click fails', async () => {
+      vi.mocked(getRedirectInfo).mockReturnValue({
+        platform: 'ios',
+        redirectUrl: 'https://apps.apple.com/app/id123456789',
+      });
+      mockInsertBuilder.values.mockRejectedValueOnce(new Error('db down'));
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await app.request('/api/process-click?code=TESTCODE123', {
+        headers: { 'user-agent': 'Mozilla/5.0 (iPhone)' },
+      });
+
+      expect(response.status).toBe(302);
+      expect(response.headers.get('location')).toContain('apps.apple.com');
+      expect(errorSpy).toHaveBeenCalled();
+      errorSpy.mockRestore();
+    });
+
+    it('should redirect within the timeout when the database hangs', async () => {
+      vi.mocked(getRedirectInfo).mockReturnValue({
+        platform: 'ios',
+        redirectUrl: 'https://apps.apple.com/app/id123456789',
+      });
+      // Never resolves: simulates an unreachable database
+      mockInsertBuilder.values.mockReturnValueOnce(new Promise(() => {}));
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+      const started = Date.now();
+      const response = await app.request('/api/process-click?code=TESTCODE123', {
+        headers: { 'user-agent': 'Mozilla/5.0 (iPhone)' },
+      });
+      const elapsed = Date.now() - started;
+
+      expect(response.status).toBe(302);
+      expect(elapsed).toBeGreaterThanOrEqual(STORE_CLICK_TIMEOUT_MS - 50);
+      expect(elapsed).toBeLessThan(STORE_CLICK_TIMEOUT_MS + 1000);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
 
     it('should set expiry to 48 hours', async () => {

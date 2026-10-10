@@ -83,24 +83,6 @@ describe('Match Routes', () => {
       expect(data.error).toBe('Missing required fields');
     });
 
-    it('should validate required fields - ip_address', async () => {
-      const invalidFingerprint = { ...mockFingerprint };
-      delete (invalidFingerprint as any).ip_address;
-
-      const response = await app.request('/api/match', {
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json',
-        },
-        body: JSON.stringify(invalidFingerprint),
-      });
-
-      expect(response.status).toBe(400);
-
-      const data: any = await response.json();
-      expect(data.error).toBe('Missing required fields');
-    });
-
     it('should pass fingerprint to findMatch service', async () => {
       vi.mocked(findMatch).mockResolvedValue({ matched: false });
 
@@ -108,11 +90,18 @@ describe('Match Routes', () => {
         method: 'POST',
         headers: {
           'content-type': 'application/json',
+          'x-forwarded-for': '192.168.1.1',
+          'user-agent': 'TestAgent/1.0',
         },
         body: JSON.stringify(mockFingerprint),
       });
 
-      expect(findMatch).toHaveBeenCalledWith(mockFingerprint);
+      // ip_address and user_agent are taken from the request headers, not trusted from the body
+      expect(findMatch).toHaveBeenCalledWith({
+        ...mockFingerprint,
+        ip_address: '192.168.1.1',
+        user_agent: 'TestAgent/1.0',
+      });
     });
 
 
@@ -171,7 +160,12 @@ describe('Match Routes', () => {
       });
 
       expect(response.status).toBe(200);
-      expect(findMatch).toHaveBeenCalledWith(completeFingerprint);
+      // ip_address and user_agent come from the request, not from the body
+      expect(findMatch).toHaveBeenCalledWith({
+        ...completeFingerprint,
+        ip_address: 'unknown',
+        user_agent: '',
+      });
     });
 
     it('should work with minimal fingerprint data', async () => {
